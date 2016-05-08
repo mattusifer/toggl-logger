@@ -3,7 +3,7 @@
             [clojure.data.codec.base64 :as b64]
             [cheshire.core :as json]))
 
-(def token (String. (b64/encode (.getBytes "bccfaca9d9a964dd36c68dec5ff56f82:api_token"))))
+(def token (String. (b64/encode (.getBytes (slurp "token")))))
 
 (def base-url "https://www.toggl.com/api/v8")
 

@@ -3,7 +3,7 @@
             [clojure.data.codec.base64 :as b64]
             [cheshire.core :as json]))
 
-(def token (String. (b64/encode (.getBytes (slurp "token")))))
+(def token (atom nil))
 
 (def base-url "https://www.toggl.com/api/v8")
 
@@ -13,11 +13,14 @@
                 :client-projects "/clients/{client_id}/projects"
                 :projects "/projects"})
 
-(def config {:headers {:Authorization (str "Basic " token)
-                       :Accept "application/json"}
-             ;; :debug true
-             ;; :debug-body true
-             })
+(defn get-config 
+  "deref token into config"
+  []
+  {:headers {:Authorization (str "Basic " @token)
+             :Accept "application/json"}
+   ;; :debug true
+   ;; :debug-body true
+   })
 
 ;; analysts workspace ID 
 (def analysts-wid 745721)
@@ -34,7 +37,7 @@
   "get client id - client will be created if it doesn't exist"
   [cid]
   (let [clients
-        (json/parse-string (:body (client/get (str base-url (:clients endpoints)) config))
+        (json/parse-string (:body (client/get (str base-url (:clients endpoints)) (get-config)))
                            true)]
 
     (if-let [client (some #(when (= (:name %) cid) %) clients)]
@@ -42,7 +45,7 @@
       (let [client (json/parse-string 
                     (:body (client/post (str base-url 
                                              (:clients endpoints))
-                                        (-> config
+                                        (-> (get-config)
                                             (assoc :form-params 
                                                    {:client {:name cid :wid analysts-wid}} 
                                                    :content-type "application/json")))) true)]
@@ -56,7 +59,7 @@
         (json/parse-string 
          (:body (client/get (str base-url (fill-client-id (:client-projects endpoints) 
                                                           toggl-client-id))
-                            config)) true)]
+                            (get-config))) true)]
 
     (if-let [project (some #(when (= (clojure.string/lower-case (:name %)) "client support") %)
                            client-projects)]
@@ -64,10 +67,10 @@
 
       ;; iterate through random case configurations until one has not been taken
       ;; and create it, returning the ID
-      (loop [proj-config (-> config
+      (loop [proj-config (-> (get-config)
                              (assoc :form-params
                                     {:project {:name "client support" :wid analysts-wid 
-                                               :is_private false :cid cid}}
+                                               :is_private false :cid toggl-client-id}}
                                     :content-type "application/json"))]
         (let [result (try
                        (client/post (str base-url (:projects endpoints)) proj-config)
@@ -82,10 +85,11 @@
 
 (defn start 
   "start a new time entry under the 'client support' project for a client - returns the id"
-  [cid description]
+  [cid description token-str]
+  (reset! token (String. (b64/encode (.getBytes token-str))))
   (let [pid (get-support-project-id cid)
         result (client/post (str base-url (:start endpoints)) 
-                            (-> config 
+                            (-> (get-config) 
                                 (assoc :form-params 
                                        {:time_entry {:description description
                                                      :pid pid
@@ -95,24 +99,17 @@
 
 (defn stop 
   "stop an existing time entry"
-  [time-entry-id]
+  [time-entry-id token-str]
+  (reset! token (String. (b64/encode (.getBytes token-str))))
   (client/put (fill-time-entry-id (str base-url (:stop endpoints)) time-entry-id)
-              config))
+              (get-config)))
 
+(comment
 
-  (comment 
+  (reset! token (String. (b64/encode (.getBytes (slurp "token")))))
 
-    (def cid (str 6115))
+  (def cid "3934")
 
-    (client 6115)
+  (def token-str "mytoken!")
 
-    (json/parse-string (:body (client/get (str base-url "/workspaces") config))
-                       true)
-
-    (client 6115)
-
-    (def time-entry-id (start "6115"))
-
-
-
-    )
+)

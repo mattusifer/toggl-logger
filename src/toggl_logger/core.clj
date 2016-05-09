@@ -6,9 +6,11 @@
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (let [cli-opts [[nil "--start CID DESC" 
+  (let [cli-opts [[nil "--start CID" 
                    "Start a time entry corresponding to a CID - returns the ENTRY_ID"]
-                  [nil "--stop ENTRY_ID" "Stop an existing time entry"]]
+                  [nil "--stop ENTRY_ID" "Stop an existing time entry"]
+                  ["-t" "--token TOKEN" "Your toggl access token"]
+                  ["-d" "--desc DESC" "A description for your time entry"]]
         error-msg (fn [errors]
                     (str "The following errors occurred while parsing your command: \n\n"
                          (clojure.string/join \newline errors)))
@@ -30,15 +32,18 @@
     ;; TODO: handle errors
     (cond
       (empty? options) (exit 1 (usage-summary summary))
-      (and (= (first (keys options)) :start)
-           (not= (count arguments) 1)) 
-      (exit 1 (error-msg ["You need to include a description!"]))
+      (or (not (contains? options :token))
+          (nil? (:token options)))
+      (exit 1 (error-msg ["You need to include your token."]))
+      (and (contains? options :start)
+           (not (contains? options :desc))) 
+      (exit 1 (error-msg ["You need to include a description if you're starting a time entry."]))
       errors (exit 1 (error-msg errors)))
 
     ;; main
     (case (first (keys options))
       :start
-      (println (toggl/start (:start options) (first arguments)))
+      (println (toggl/start (:start options) (:desc options) (:token options)))
       :stop
-      (if (toggl/stop (:stop options))
-        (println "stopped!")))))
+      (if (toggl/stop (:stop options) (:token options))
+        (println "Stopped toggl entry.")))))

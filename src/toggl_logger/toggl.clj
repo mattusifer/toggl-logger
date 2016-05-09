@@ -9,8 +9,8 @@
 
 (def endpoints {:start "/time_entries/start"
                 :stop "/time_entries/{time_entry_id}/stop"
-                :clients "/clients"
-                :client-projects "/clients/{client_id}/projects"
+                :workspace-projects "/workspaces/{workspace_id}/projects"
+                :workspace-tags "/workspaces/{workspace_id}/tags"
                 :projects "/projects"})
 
 (defn get-config 
@@ -33,67 +33,52 @@
   [string id]
   (clojure.string/replace string #"\{time_entry_id\}" (str id)))
 
-(defn get-toggl-cid
-  "get client id - client will be created if it doesn't exist"
-  [cid]
-  (let [clients
-        (json/parse-string (:body (client/get (str base-url (:clients endpoints)) (get-config)))
+(defn- fill-workspace-id
+  [string id]
+  (clojure.string/replace string #"\{workspace_id\}" (str id)))
+
+(defn get-toggl-project
+  "get project from CID"
+  [cid name]
+  (let [projects
+        (json/parse-string (:body (client/get (fill-workspace-id (str base-url (:workspace-projects endpoints)) analysts-wid) (get-config)))
                            true)]
 
-    (if-let [client (some #(when (= (:name %) cid) %) clients)]
-      (:id client)
-      (let [client (json/parse-string 
-                    (:body (client/post (str base-url 
-                                             (:clients endpoints))
-                                        (-> (get-config)
-                                            (assoc :form-params 
-                                                   {:client {:name cid :wid analysts-wid}} 
-                                                   :content-type "application/json")))) true)]
-        (:id client)))))
-
-(defn get-support-project-id
-  "get project id for 'client support' - will be created if it doesn't exist"
-  [cid]
-  (let [toggl-client-id (get-toggl-cid cid)
-        client-projects
-        (json/parse-string 
-         (:body (client/get (str base-url (fill-client-id (:client-projects endpoints) 
-                                                          toggl-client-id))
-                            (get-config))) true)]
-
-    (if-let [project (some #(when (= (clojure.string/lower-case (:name %)) "client support") %)
-                           client-projects)]
+    (if-let [project (some #(when (re-find (re-pattern (str cid ".*")) (:name %)) %) projects)]
       (:id project)
+      (let [project (json/parse-string 
+                     (:body (client/post (str base-url
+                                              (:projects endpoints))
+                                         (-> (get-config)
+                                             (assoc :form-params
+                                                    {:project {:name (str cid " (" name ")")
+                                                               :wid analysts-wid
+                                                               :is-private false}})))))]))))
 
-      ;; iterate through random case configurations until one has not been taken
-      ;; and create it, returning the ID
-      (loop [proj-config (-> (get-config)
-                             (assoc :form-params
-                                    {:project {:name "client support" :wid analysts-wid 
-                                               :is_private false :cid toggl-client-id}}
-                                    :content-type "application/json"))]
-        (let [result (try
-                       (client/post (str base-url (:projects endpoints)) proj-config)
-                       (catch RuntimeException e (ex-data e)))]
-          (if (and (= (:status result) 400) (re-find #"already been taken" (:body result)))
-            (let [[pref suff] 
-                  (map #(reduce str %) 
-                       (split-at (rand-int (count "client support")) "client support"))]
-              (recur (assoc-in proj-config [:form-params :project :name]
-                               (str (clojure.string/upper-case pref) suff))))
-            (print (:body result))))))))
+(defn get-tag-name
+  "get correct tag name based on input"
+  [tag-name]
+  (let [tags 
+        (json/parse-string (:body (client/get 
+                                   (fill-workspace-id (str base-url (:workspace-tags endpoints)) 
+                                                      analysts-wid) (get-config))) true)]
+    (some #(when (= (clojure.string/lower-case tag-name) 
+                    (clojure.string/lower-case (:name %))) (:name %))
+          tags)))
 
 (defn start 
   "start a new time entry under the 'client support' project for a client - returns the id"
-  [cid description token-str]
+  [cid name description tag-name token-str]
   (reset! token (String. (b64/encode (.getBytes token-str))))
-  (let [pid (get-support-project-id cid)
+  (let [pid (get-toggl-project cid name)
+        tag (get-tag-name tag-name)
         result (client/post (str base-url (:start endpoints)) 
                             (-> (get-config) 
                                 (assoc :form-params 
                                        {:time_entry {:description description
+                                                     :tags [tag]
                                                      :pid pid
-                                                     :created_with "automated-script"}}
+                                                     :created_with "matt's automated script"}}
                                        :content-type "application/json")))]
     (:id (:data (json/parse-string (:body result) true)))))
 
@@ -111,5 +96,12 @@
   (def cid "3934")
 
   (def token-str "mytoken!")
+
+  (def tag-name "client suPPort")
+
+
+  (map :name (json/parse-string (:body
+                                 (client/get (fill-workspace-id (str base-url (:workspace-tags endpoints)) analysts-wid) (get-config))) true))
+
 
 )

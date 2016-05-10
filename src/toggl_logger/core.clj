@@ -22,7 +22,7 @@
         usage-summary (fn [summary]
                         (->> ["Use this program to start and stop toggl time entries."
                               ""
-                              "Usage: toggl-logger [options]"
+                              "Usage: java -jar toggl-logger.jar [options]"
                               ""
                               "Options:"
                               summary]

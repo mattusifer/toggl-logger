@@ -18,7 +18,7 @@ Options:
 
 ```bash
 # start
-$ ENTRY_ID=java -jar toggl-logger.jar --start <CID> --g <TAG> -n <NAME> -d <DESC> -t <TOKEN>
+$ ENTRY_ID=#(java -jar toggl-logger.jar --start <CID> --g <TAG> -n <NAME> -d <DESC> -t <TOKEN>)
 
 # stop
 $ java -jar toggl-logger.jar --stop $ENTRY_ID -t <TOKEN>

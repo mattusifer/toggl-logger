@@ -39,21 +39,23 @@
 
 (defn get-toggl-project
   "get project from CID"
-  [cid name]
+  [cid cname]
   (let [projects
         (json/parse-string (:body (client/get (fill-workspace-id (str base-url (:workspace-projects endpoints)) analysts-wid) (get-config)))
                            true)]
 
-    (if-let [project (some #(when (re-find (re-pattern (str cid ".*")) (:name %)) %) projects)]
+    (if-let [project (some #(when (re-find (re-pattern (str cid " \\(.*\\)")) (:name %)) %) projects)]
       (:id project)
       (let [project (json/parse-string 
                      (:body (client/post (str base-url
                                               (:projects endpoints))
                                          (-> (get-config)
                                              (assoc :form-params
-                                                    {:project {:name (str cid " (" name ")")
+                                                    {:project {:name (str cid " (" cname ")")
                                                                :wid analysts-wid
-                                                               :is-private false}})))))]))))
+                                                               :is-private false}}
+                                                    :content-type "application/json")))))]
+        (:id project)))))
 
 (defn get-tag-name
   "get correct tag name based on input"
@@ -68,9 +70,9 @@
 
 (defn start 
   "start a new time entry under the 'client support' project for a client - returns the id"
-  [cid name description tag-name token-str]
+  [cid cname description tag-name token-str]
   (reset! token (String. (b64/encode (.getBytes token-str))))
-  (let [pid (get-toggl-project cid name)
+  (let [pid (get-toggl-project cid cname)
         tag (get-tag-name tag-name)
         result (client/post (str base-url (:start endpoints)) 
                             (-> (get-config) 
@@ -88,20 +90,3 @@
   (reset! token (String. (b64/encode (.getBytes token-str))))
   (client/put (fill-time-entry-id (str base-url (:stop endpoints)) time-entry-id)
               (get-config)))
-
-(comment
-
-  (reset! token (String. (b64/encode (.getBytes (slurp "token")))))
-
-  (def cid "3934")
-
-  (def token-str "mytoken!")
-
-  (def tag-name "client suPPort")
-
-
-  (map :name (json/parse-string (:body
-                                 (client/get (fill-workspace-id (str base-url (:workspace-tags endpoints)) analysts-wid) (get-config))) true))
-
-
-)

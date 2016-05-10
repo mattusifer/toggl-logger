@@ -1,36 +1,15 @@
 # toggl-logger
 
-FIXME: description
+A command line utility for starting and stopping Toggl entries according to a specific process.
 
-## Installation
+```
+Usage: toggl-logger [options]
 
-Download from http://example.com/FIXME.
-
-## Usage
-
-FIXME: explanation
-
-    $ java -jar toggl-logger-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
-
-## License
-
-Copyright © 2016 FIXME
-
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+Options:
+      --start CID      Start a time entry corresponding to a CID - returns the ENTRY_ID
+      --stop ENTRY_ID  Stop an existing time entry
+  -g, --tag TAG        Tag applied to access token
+  -n, --name NAME      The name of the client
+  -t, --token TOKEN    Your toggl access token
+  -d, --desc DESC      A description for your time entry
+```

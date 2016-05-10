@@ -13,3 +13,13 @@ Options:
   -t, --token TOKEN    Your toggl access token
   -d, --desc DESC      A description for your time entry
 ```
+
+## Example
+
+```bash
+# start
+$ ENTRY_ID=java -jar toggl-logger.jar --start <CID> --g <TAG> -n <NAME> -d <DESC> -t <TOKEN>
+
+#stop
+$ java -jar toggl-logger.jar --stop $ENTRY_ID -t <TOKEN>
+```

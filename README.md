@@ -3,7 +3,7 @@
 A command line utility for starting and stopping Toggl entries according to a specific process.
 
 ```
-Usage: toggl-logger [options]
+Usage: java -jar toggl-logger [options]
 
 Options:
       --start CID      Start a time entry corresponding to a CID - returns the ENTRY_ID

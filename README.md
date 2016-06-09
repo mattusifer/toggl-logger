@@ -2,12 +2,13 @@
 
 A command line utility for starting and stopping Toggl entries according to a specific process.
 
-### build
+## Build
 
 ```bash
-lein uberjar
+$ lein uberjar
 ```
 
+## Usage
 ```
 Usage: java -jar toggl-logger.jar [options]
 

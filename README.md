@@ -2,8 +2,14 @@
 
 A command line utility for starting and stopping Toggl entries according to a specific process.
 
+### build
+
+```bash
+lein uberjar
 ```
-Usage: java -jar toggl-logger [options]
+
+```
+Usage: java -jar toggl-logger.jar [options]
 
 Options:
       --start CID      Start a time entry corresponding to a CID - returns the ENTRY_ID
